@@ -183,18 +183,12 @@ class FrozenLake(Environment):
 
         Environment.__init__(self, n_states, n_actions, max_steps, pi, seed)
 
-        self.actions = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+        self.actions = [(-1, 0), (0, -1), (1, 0), (0, 1)]
 
         self.dict_states = {p: i for (i, p) in enumerate(product(range(self.lake.shape[0]), range(self.lake.shape[1])))}
 
         self.transition_probability_file = np.load('p.npy')
         n_s, s, _ = self.transition_probability_file.shape
-
-        for i in range(n_s):
-            for j in range(s):
-                temp = self.transition_probability_file[i, j, 2]
-                self.transition_probability_file[i, j, 2] = self.transition_probability_file[i, j, 1]
-                self.transition_probability_file[i, j, 1] = temp
 
         """
         self.transition_popability = np.zeros((self.n_states, self.n_actions, self.n_states))  # applicable to all lakes
@@ -326,7 +320,7 @@ class FrozenLake(Environment):
     '''
 
     def play(self):
-        actions = ['w', 's', 'a', 'd']
+        actions = ['w', 'a', 's', 'd']
 
         state = self.reset()
         self.render()
