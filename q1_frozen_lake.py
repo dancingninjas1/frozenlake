@@ -4,15 +4,7 @@ from itertools import product
 import numpy as np
 import contextlib
 
-"""Gets and prints the spreadsheet's header columns
-
-Args:
-    table_handle:
-        An open smalltable.Table instance.
-
-Returns:
-    A dict mapping keys to the corresponding table row data fetched.
-"""
+# Print the value matrix
 @contextlib.contextmanager
 def _printoptions(*args, **kwargs):
     original = np.get_printoptions()
@@ -24,52 +16,63 @@ def _printoptions(*args, **kwargs):
 
 
 class EnvironmentModel:
-    """Summary of class here.
+    """Abstract class of a model of an environment
 
     Attributes:
-        n_states:
-        n_actions:
-        random_state:
+        n_states: number of states
+        n_actions: number of actions
+        seed: seed that controls the pseudorandom number generator
     """
 
     def __init__(self, n_states, n_actions, seed=None):
         self.n_states = n_states
         self.n_actions = n_actions
-
         self.random_state = np.random.RandomState(seed)
 
-    """Gets and prints the spreadsheet's header columns
+    """Get probability of transitioning from state to next state given action
+        Need to implement in child class
 
         Args:
-            table_handle:
-                An open smalltable.Table instance.
-
+            next_state:
+                next state to transition
+            state:
+                current state
+            action:
+                action to take at current state
+    
         Returns:
-            A dict mapping keys to the corresponding table row data fetched.
+            Probability of transitioning from state to next state given action
     """
     def p(self, next_state, state, action):
         raise NotImplementedError()
 
-    """Gets and prints the spreadsheet's header columns
+    """Get expected reward in having transitioned from state to next state given action
+        Need to implement in child class
 
         Args:
-            table_handle:
-                An open smalltable.Table instance.
+            next_state:
+                next state to transition
+            state:
+                current state
+            action:
+                action to take at current state
 
         Returns:
-            A dict mapping keys to the corresponding table row data fetched.
+            Expected reward in having transitioned from state to next state given action
     """
     def r(self, next_state, state, action):
         raise NotImplementedError()
 
-    """One step dynamic
+    """Draw the next state
 
     Args:
-        table_handle:
-            An open smalltable.Table instance.
+        state:
+            current state
+        action:
+            action to take at current state
 
     Returns:
-        A dict mapping keys to the corresponding table row data fetched.
+        A state drawn according to p together with the corresponding expected reward
     """
     def draw(self, state, action):
         p = [self.p(ns, state, action) for ns in range(self.n_states)]
@@ -80,12 +83,14 @@ class EnvironmentModel:
 
 
 class Environment(EnvironmentModel):
-    """Summary of class here.
+    """Subclass of EnvironmentModel, represents an interactive environment
 
     Attributes:
-        n_states:
-        n_actions:
-        random_state:
+        n_states: number of states
+        n_actions: number of actions
+        max_steps: maximum number of steps for interaction
+        pi: probability distribution over initial states
+        seed: seed that controls the pseudorandom number generator
     """
 
     def __init__(self, n_states, n_actions, max_steps, pi, seed=None):
@@ -97,14 +102,10 @@ class Environment(EnvironmentModel):
         if self.pi is None:
             self.pi = np.full(n_states, 1. / n_states)
 
-    """Gets and prints the spreadsheet's header columns
-
-    Args:
-        table_handle:
-            An open smalltable.Table instance.
-
+    """Restarts the interaction between the agent and the environment
+        
     Returns:
-        A dict mapping keys to the corresponding table row data fetched.
+        State which drawn according to the probability distribution over initial states
     """
     def reset(self):
         self.n_steps = 0
@@ -112,14 +113,17 @@ class Environment(EnvironmentModel):
 
         return self.state
 
-    """Gets and prints the spreadsheet's header columns
+    """Step forward and draw the next state
 
     Args:
-        table_handle:
-            An open smalltable.Table instance.
+        action:
+            action to take at current state
 
     Returns:
-        A dict mapping keys to the corresponding table row data fetched.
+        A next state drawn according to p, the corresponding expected reward, and a flag variable
+    
+    Raises:
+      Exception: action is invalid
     """
     def step(self, action):
         if action < 0 or action >= self.n_actions:
@@ -132,27 +136,29 @@ class Environment(EnvironmentModel):
 
         return self.state, reward, done
 
-    """Gets and prints the spreadsheet's header columns
-
+    """Render function
+        Need to implement in child class
     Args:
-        table_handle:
-            An open smalltable.Table instance.
-
-    Returns:
-        A dict mapping keys to the corresponding table row data fetched.
+        policy:
+            policy matrix, default: None
+        value:
+            value matrix, default: None
     """
-
     def render(self, policy=None, value=None):
         raise NotImplementedError()
 
 
 class FrozenLake(Environment):
-    """Summary of class here.
+    """Child class of Environment, represents the frozen lake environment
 
     Attributes:
-        n_states:
-        n_actions:
-        random_state:
+        n_states: number of states
+        n_actions: number of actions
+        max_steps: maximum number of steps for interaction
+        pi: probability distribution over initial states
+        seed: seed that controls the pseudorandom number generator
+        lake: a matrix that represents a lake
+        slip: probability that the agent will slip at any given time step
     """
 
     def __init__(self, lake, slip, max_steps, seed=None):
@@ -170,27 +176,26 @@ class FrozenLake(Environment):
         # start (&), frozen (.), hole (#), goal ($)
         self.lake = np.array(lake)
         self.lake_flat = self.lake.reshape(-1)
-
         self.slip = slip
 
         n_states = self.lake.size + 1
         n_actions = 4
-
         pi = np.zeros(n_states, dtype=float)
         pi[np.where(self.lake_flat == '&')[0]] = 1.0
 
+        # absorbing_state code
         self.absorbing_state = n_states - 1
 
         Environment.__init__(self, n_states, n_actions, max_steps, pi, seed)
 
-        self.actions = [(-1, 0), (0, -1), (1, 0), (0, 1)]
+        # Set of actions: up, left, down, right
+        self.actions = [(1, 0), (0, -1), (-1, 0), (0, 1)]
 
-        self.dict_states = {p: i for (i, p) in enumerate(product(range(self.lake.shape[0]), range(self.lake.shape[1])))}
-
-        self.transition_probability_file = np.load('p.npy')
-        n_s, s, _ = self.transition_probability_file.shape
+        self.p_file = np.load('p.npy')
 
         """
+        # state index of a lake
+        self.state_dict = {p: i for (i, p) in enumerate(product(range(self.lake.shape[0]), range(self.lake.shape[1])))}
         self.transition_popability = np.zeros((self.n_states, self.n_actions, self.n_states))  # applicable to all lakes
 
         for current_state, current_state_index in self.dict_states.items():
@@ -224,73 +229,64 @@ class FrozenLake(Environment):
                                 current_state_index, n, index_slip_state] = 0.025  # self.slip/self.n_actions
         """
 
-    ''' step function
-        calls the step function of the parent
+    """Frozen lake step function that calls the step function of the parent
 
-        @param action
-            the next action
+        Args:
+            action:
+                action to take at current state
 
-        @return self.state
-            return the current state
-        @return reward
-            return the current reward
-        @return done
-            bool if the game max step limit has been reached 
-    '''
-
+        Returns:
+            A next state drawn according to p, the corresponding expected reward, and a flag variable
+    """
     def step(self, action):
         state, reward, done = Environment.step(self, action)
         done = (state == self.absorbing_state) or done
         return state, reward, done
 
-    ''' p function
-        probability to be returned for combination of next state, state, and action
+    """Get probability of transitioning from state to next state given action
 
-        @param next_state
-            the next game state
-        @param state
-            current game state
-        @param action
-            action taken
+        Args:
+            next_state:
+                next state to transition
+            state:
+                current state
+            action:
+                action to take at current state
 
-        @return p
-            probability
-    '''
+        Returns:
+            Expected reward in having transitioned from state to next state given action
+    """
     def p(self, next_state, state, action):
-        return self.transition_probability_file[next_state, state, action]
+        return self.p_file[next_state, state, action]
         # return self.transition_popability[state, action, next_state]
 
-    ''' r function
-        expected reward in having transitioned from state to next state given action
+    """Get expected reward in having transitioned from state to next state given action
 
-        @param next_state
-            the next game state
-        @param state
-            current game state
-        @param action
-            action taken
+        Args:
+            next_state:
+                next state to transition
+            state:
+                current state
+            action:
+                action to take at current state
 
-        @return r
-            expected reward based on parameters
-    '''
-
+        Returns:
+            Expected reward in having transitioned from state to next state given action
+    """
     def r(self, next_state, state, action):
         char = 'xs'
         if (state < self.n_states - 1): char = self.lake_flat[state]  # if not in the absorbing state
         if (char == '$'): return 1  # but on goal then return reward one
         return 0  # for any other action no reward
 
-    ''' render function
-        renders and prints the state
+    """Render the decision matrix
 
-        @param policy
-            @default = None 
-            the current policy used
-        @param value
-            @default = None
-            expected total reward starting from each game state
-    '''
-
+        Args:
+            policy:
+                policy matrix, default: None
+            value:
+                value matrix, default: None
+    """
     def render(self, policy=None, value=None):
         if policy is None:
             lake = np.array(self.lake_flat)
@@ -315,10 +311,8 @@ class FrozenLake(Environment):
             with _printoptions(precision=3, suppress=True):
                 print(value[:-1].reshape(self.lake.shape))
 
-    ''' play function
-        lets the user play the game
-    '''
-
+    """Play function
+    """
     def play(self):
         actions = ['w', 'a', 's', 'd']
 
