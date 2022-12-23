@@ -4,6 +4,7 @@ from itertools import product
 import numpy as np
 import contextlib
 
+
 # Print the value matrix
 @contextlib.contextmanager
 def _printoptions(*args, **kwargs):
@@ -43,6 +44,7 @@ class EnvironmentModel:
         Returns:
             Probability of transitioning from state to next state given action
     """
+
     def p(self, next_state, state, action):
         raise NotImplementedError()
 
@@ -60,6 +62,7 @@ class EnvironmentModel:
         Returns:
             Expected reward in having transitioned from state to next state given action
     """
+
     def r(self, next_state, state, action):
         raise NotImplementedError()
 
@@ -74,6 +77,7 @@ class EnvironmentModel:
     Returns:
         A state drawn according to p together with the corresponding expected reward
     """
+
     def draw(self, state, action):
         p = [self.p(ns, state, action) for ns in range(self.n_states)]
         next_state = self.random_state.choice(self.n_states, p=p)
@@ -107,6 +111,7 @@ class Environment(EnvironmentModel):
     Returns:
         State which drawn according to the probability distribution over initial states
     """
+
     def reset(self):
         self.n_steps = 0
         self.state = self.random_state.choice(self.n_states, p=self.pi)
@@ -125,6 +130,7 @@ class Environment(EnvironmentModel):
     Raises:
       Exception: action is invalid
     """
+
     def step(self, action):
         if action < 0 or action >= self.n_actions:
             raise Exception('Invalid action.')
@@ -144,6 +150,7 @@ class Environment(EnvironmentModel):
         value:
             value matrix, default: None
     """
+
     def render(self, policy=None, value=None):
         raise NotImplementedError()
 
@@ -183,51 +190,54 @@ class FrozenLake(Environment):
         pi = np.zeros(n_states, dtype=float)
         pi[np.where(self.lake_flat == '&')[0]] = 1.0
 
-        # absorbing_state code
-        self.absorbing_state = n_states - 1
+        # absorbing_state
+        self.absorb_state_idx = n_states - 1
+        self.absorb_state = tuple((-1, -1))
 
         Environment.__init__(self, n_states, n_actions, max_steps, pi, seed)
 
         # Set of actions: up, left, down, right
-        self.actions = [(1, 0), (0, -1), (-1, 0), (0, 1)]
+        self.actions = [(-1, 0), (0, -1), (1, 0), (0, 1)]
 
-        self.p_file = np.load('p.npy')
+        # self.p_file = np.load('p.npy')
 
-        """
         # state index of a lake
-        self.state_dict = {p: i for (i, p) in enumerate(product(range(self.lake.shape[0]), range(self.lake.shape[1])))}
-        self.transition_popability = np.zeros((self.n_states, self.n_actions, self.n_states))  # applicable to all lakes
+        iter_state_product = list(product(range(self.lake.shape[0]), range(self.lake.shape[1])))
+        iter_state_product.append(self.absorb_state)  # add absorb state
+        self.state_dict = {s: i for (i, s) in enumerate(iter_state_product)}
 
-        for current_state, current_state_index in self.dict_states.items():
-            for n, action in enumerate(self.actions):
-                next_state = (current_state[0] + action[0], current_state[1] + action[1])
-                index_next_state = self.dict_states.get(next_state, 'NaN')
-                current_tile = self.lake_flat[current_state_index]
+        # initiate the transition probability
+        self.transition_probability = np.zeros((self.n_states, self.n_states, self.n_actions))
 
-                if index_next_state == 'NaN':
-                    index_next_state = current_state_index
+        for state, state_idx in self.state_dict.items():
+            for action_idx, action in enumerate(self.actions):
 
-                if current_tile == '$' or current_tile == '#':  # hole or goal
-                    self.transition_popability[
-                        current_state_index, n, self.absorbing_state] = 1  # 0.925 #1.0 - self.slip + (self.slip/self.n_actions)
-                    continue
+                # current state is absorb state
+                if state_idx == self.absorb_state_idx:
+                    next_state = self.absorb_state
+                    next_state_idx = self.state_dict.get(next_state)
+                    self.transition_probability[next_state_idx, state_idx, action_idx] = 1
+
+                # current state is goal or starting point
+                elif self.lake_flat[state_idx] == '$' or self.lake_flat[state_idx] == '#':
+                    next_state = self.absorb_state
+                    next_state_idx = self.state_dict.get(next_state)
+                    self.transition_probability[next_state_idx, state_idx, action_idx] = 1
+
+                # current state is normal state
                 else:
-                    self.transition_popability[
-                        current_state_index, n, index_next_state] = 0.925  # 1.0 - self.slip + (self.slip/self.n_actions)
+                    # set transition_probability for current state
+                    next_state = (state[0] + action[0], state[1] + action[1])
+                    next_state_idx = self.state_dict.get(next_state, state_idx)
+                    # base transition probability: 1.0 - self.slip
+                    self.transition_probability[next_state_idx, state_idx, action_idx] += 1.0 - self.slip
 
-                for n_slip, action_slip in enumerate(self.actions):
-                    if n_slip == n:
-                        continue
-                    else:
-                        slip_state = (current_state[0] + action_slip[0], current_state[1] + action_slip[1])
-                        index_slip_state = self.dict_states.get(slip_state, 'NaN')
-                        if index_slip_state == 'NaN':
-                            self.transition_popability[
-                                current_state_index, n, current_state_index] += 0.025  # self.slip/self.n_actions
-                        if not index_slip_state == 'NaN':
-                            self.transition_popability[
-                                current_state_index, n, index_slip_state] = 0.025  # self.slip/self.n_actions
-        """
+                    # set transition_probability for slip action
+                    for a in self.actions:
+                        n_s = (state[0] + a[0], state[1] + a[1])
+                        n_s_i = self.state_dict.get(n_s, state_idx)
+                        # additional slip transition probabilities self.slip / 4
+                        self.transition_probability[n_s_i, state_idx, action_idx] += self.slip / 4
 
     """Frozen lake step function that calls the step function of the parent
 
@@ -238,9 +248,10 @@ class FrozenLake(Environment):
         Returns:
             A next state drawn according to p, the corresponding expected reward, and a flag variable
     """
+
     def step(self, action):
         state, reward, done = Environment.step(self, action)
-        done = (state == self.absorbing_state) or done
+        done = (state == self.absorb_state_idx) or done
         return state, reward, done
 
     """Get probability of transitioning from state to next state given action
@@ -256,9 +267,10 @@ class FrozenLake(Environment):
         Returns:
             Expected reward in having transitioned from state to next state given action
     """
+
     def p(self, next_state, state, action):
-        return self.p_file[next_state, state, action]
-        # return self.transition_popability[state, action, next_state]
+        # return self.p_file[next_state, state, action]
+        return self.transition_probability[next_state, state, action]
 
     """Get expected reward in having transitioned from state to next state given action
 
@@ -273,6 +285,7 @@ class FrozenLake(Environment):
         Returns:
             Expected reward in having transitioned from state to next state given action
     """
+
     def r(self, next_state, state, action):
         char = 'xs'
         if (state < self.n_states - 1): char = self.lake_flat[state]  # if not in the absorbing state
@@ -287,11 +300,12 @@ class FrozenLake(Environment):
             value:
                 value matrix, default: None
     """
+
     def render(self, policy=None, value=None):
         if policy is None:
             lake = np.array(self.lake_flat)
 
-            if self.state < self.absorbing_state:
+            if self.state < self.absorb_state_idx:
                 lake[self.state] = '@'
 
             print(lake.reshape(self.lake.shape))
@@ -313,6 +327,7 @@ class FrozenLake(Environment):
 
     """Play function
     """
+
     def play(self):
         actions = ['w', 'a', 's', 'd']
 
