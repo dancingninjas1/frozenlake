@@ -33,8 +33,8 @@ def main():
 
     print('')
     print('## Value iteration')
-    optimal_policy, value = value_iteration(env, gamma, theta, max_iterations)
-    env.render(optimal_policy, value)
+    policy, value = value_iteration(env, gamma, theta, max_iterations)
+    env.render(policy, value)
 
     epsilon = 0.9
     max_episodes = 10000
