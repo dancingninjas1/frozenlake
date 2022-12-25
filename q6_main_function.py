@@ -1,5 +1,5 @@
 from q1_frozen_lake import FrozenLake
-from q2_model_based_rl import policy_iteration
+from q2_model_based_rl import policy_iteration, value_iteration
 from q3_model_free import sarsa, q_learning
 from q4_non_tabular_model import LinearWrapper, linear_sarsa, linear_q_learning
 from q5_deep_reinforcement_learning import FrozenLakeImageWrapper, deep_q_network_learning
@@ -25,8 +25,16 @@ def main():
     theta = 0.001
     max_iterations = 2000
     print("Model based Algorithm")
+
+    print('')
+    print('## Policy iteration')
     policy, value = policy_iteration(env, gamma, theta, max_iterations)
     env.render(policy, value)
+
+    print('')
+    print('## Value iteration')
+    optimal_policy, value = value_iteration(env, gamma, theta, max_iterations)
+    env.render(optimal_policy, value)
 
     epsilon = 0.9
     max_episodes = 10000

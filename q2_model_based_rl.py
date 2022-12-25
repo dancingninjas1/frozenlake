@@ -1,142 +1,158 @@
-## Task 2 ##
-
 import numpy as np
 
-### policy iteration section ###
+"""policy evaluation function
+    
+    Args:
+        env:
+            the environment to learn
+        policy:
+            the policy Pi to evaluate
+        gamma:
+            discount factor
+        theta:
+            tolerance
+        max_iterations:
+            the max number of iteration 
 
-''' policy_evaluation function
-    evaluates the given policy
-    
-    @param env
-        the current environment
-    @param policy
-        the policy to be evaluated
-    @param gamma
-        discount factor
-    @param theta
-        tolerance parameter
-    @param max_iterations
-        the max number of iteration that can be used to retrieve the evaluation value
-    
-    @return value
-        expected total reward starting from each game state
-'''
+    Returns:
+        expected total reward
+"""
+
+
 def policy_evaluation(env, policy, gamma, theta, max_iterations):
-    value = np.zeros(env.n_states, dtype=np.float)
-    for _ in range(max_iterations):
+    # initialize arbitrary V(s) array
+    v_s = np.zeros(env.n_states, dtype=np.float)
+    i = 0
+    delta = theta
+    while (i < max_iterations) and (delta >= theta):
         delta = 0
-        for state in range(env.n_states):
-            v = value[state]
-            value[state] = sum([env.p(next_s, state, policy[state]) * (env.r(next_s, state, policy[state]) + gamma * value[next_s]) 
-            for next_s in range(env.n_states)])
-            delta = max(delta, abs(v - value[state]))
-        if delta < theta:
-            break
-    return value
+        i += 1
+        for s in range(env.n_states):
+            # assign value to v
+            v = v_s[s]
+            # calculate V(s)
+            v_s[s] = sum(
+                [env.p(next_s, s, policy[s]) * (env.r(next_s, s, policy[s]) + gamma * v_s[next_s])
+                 for next_s in range(env.n_states)])
+            # assign value to delta
+            delta = max(delta, abs(v - v_s[s]))
+    return v_s
 
-''' policy_improvement function 
-    create a policy for each possible game state
+
+"""policy improvement function 
+    to get the max Qpi
     
-    @param env
-        the current environment
-    @param value
+    Args:
+        env:
+            the environment to learn
+        value:
+            policy evaluation result
+        gamma:
+            discount factor
+
+    Returns:
         expected total reward starting from each game state
-    @param gamma
-        discount factor
-    
-    @return policy
-        the improved policy
-'''
+"""
+
+
 def policy_improvement(env, value, gamma):
+    # initiate policy array to be arbitrary (all zero)
     policy = np.zeros(env.n_states, dtype=int)
 
-    #TODO:
-    for s in range(env.n_states):
-        policy[s] = np.argmax([
-            sum([env.p(next_s, s, a) * (env.r(next_s, s, a) + gamma * value[next_s])
-            for next_s in range(env.n_states)])
+    for s_idx in range(env.n_states):
+        # find Pi prime for each state
+        policy[s_idx] = np.argmax([
+            sum([env.p(n_s_idx, s_idx, a) * (env.r(n_s_idx, s_idx, a) + gamma * value[n_s_idx])
+                 for n_s_idx in range(env.n_states)])
             for a in range(env.n_actions)])
     return policy
 
-''' policy_iteration function
-    Iteratively improve the policy
+
+"""policy iteration function
+    iteratively increased the value and uses the value to create the policy
     
-    @param env
-        the current enviroment
-    @param policy
-        @default = None
-        the previous policy
-    @param gamma
-        discount factor
-    @param theta
-        tolerance parameter
-    @param max_iterations
-        the max number of iteration that can be used to retrieve the evaluation value 
-    
-    @return policy
-        the improved policy
-    @return value
-        expected total reward starting from each game state
-'''
+    Args:
+        env:
+            the environment to learn
+        gamma:
+            discount factor
+        theta:
+            tolerance parameter
+        max_iterations:
+            the max number of iteration that can be used to retrieve the evaluation value
+        policy:
+            the previous policy
+        
+    Returns:
+        improved policy and expected total reward starting from each game state
+"""
+
+
 def policy_iteration(env, gamma, theta, max_iterations, policy=None):
+    # initialize arbitrary policy
     if policy is None:
         policy = np.zeros(env.n_states, dtype=int)
     else:
         policy = np.array(policy, dtype=int)
-    while(True):
-        policy_initial = policy
+
+    while True:
+        previous_policy = policy
+        # one step policy improvement
         value = policy_evaluation(env, policy, gamma, theta, max_iterations)
         policy = policy_improvement(env, value, gamma)
-        if np.array_equal(policy_initial, policy):
+        # if convergence, then break the iteration
+        if np.array_equal(previous_policy, policy):
             break
     return policy, value
 
 
-### value iteration section ###
-
-''' value_iteration function
+"""value_iteration function
     iteratively increased the value and uses the value to create the policy
     
-    @param env
-        the current environment
-    @param gamma
-        discount factor
-    @param theta
-        tolerance parameter
-    @param max_iterations
-        the max number of iteration that can be used to retrieve the evaluation value
-    @param value
-        @default = None
-        expected total reward starting from each game state
+    Args:
+        env:
+            the environment to learn
+        gamma
+            discount factor
+        theta
+            tolerance parameter
+        max_iterations
+            the max number of iteration that can be used to retrieve the evaluation value
+        value
+            expected total reward starting from each game state
     
-    @return policy
-        the improved policy
-    @return value
-        expected total reward starting from each game state
-'''
+    Returns:
+        improved policy and expected total reward starting from each game state
+"""
+
+
 def value_iteration(env, gamma, theta, max_iterations, value=None):
+    # initialize arbitrary V(s) array
     if value is None:
         value = np.zeros(env.n_states)
     else:
         value = np.array(value, dtype=np.float)
 
-    for _ in range(max_iterations):
+    # create sequence V0, V1, ... V*
+    i = 0
+    delta = theta
+    while (i < max_iterations) and (delta >= theta):
         delta = 0
-        for state in range(env.n_states):
-            v = value[state]
-            value[state] = max([
-            sum([env.p(s_next, state, action) * (env.r(s_next, state, action) + gamma * value[s_next]) 
-            for s_next in range(env.n_states)]) 
-            for action in range(env.n_actions)])
-            delta = max(delta, abs(v - value[state]))
-        if delta < theta:
-            break
+        i += 1
+        for s in range(env.n_states):
+            v = value[s]
+            value[s] = max([
+                sum([env.p(next_s, s, a) * (env.r(next_s, s, a) + gamma * value[next_s])
+                     for next_s in range(env.n_states)])
+                for a in range(env.n_actions)])
+            delta = max(delta, abs(v - value[s]))
 
+    # find optimal policy with V*(s)
     policy = np.zeros(env.n_states, dtype=int)
-    for state in range(env.n_states):
-        policy[state] = np.argmax(
-        [sum([env.p(s_next, state, action) * (env.r(s_next, state, action) + gamma * value[s_next])
-        for s_next in range(env.n_states)])
-        for action in range(env.n_actions)])
+    for s in range(env.n_states):
+        policy[s] = np.argmax(
+            [sum([env.p(next_s, s, a) * (env.r(next_s, s, a) + gamma * value[next_s])
+                  for next_s in range(env.n_states)])
+             for a in range(env.n_actions)])
 
     return policy, value

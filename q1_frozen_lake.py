@@ -218,7 +218,7 @@ class FrozenLake(Environment):
                     next_state_idx = self.state_dict.get(next_state)
                     self.transition_probability[next_state_idx, state_idx, action_idx] = 1
 
-                # current state is goal or starting point
+                # current state is goal or hole
                 elif self.lake_flat[state_idx] == '$' or self.lake_flat[state_idx] == '#':
                     next_state = self.absorb_state
                     next_state_idx = self.state_dict.get(next_state)
