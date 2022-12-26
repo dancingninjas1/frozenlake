@@ -20,7 +20,9 @@ def main():
                 ['.', '#', '.', '.', '#', '.', '#', '.'],
                 ['.', '.', '.', '#', '.', '.', '.', '$']]
 
-    env = FrozenLake(big_lake, slip=0.1, max_steps=16, seed=seed)
+    lake = big_lake
+    size = len(lake) * len(lake[0])
+    env = FrozenLake(lake, slip=0.1, max_steps=size, seed=seed)
     gamma = 0.9
     theta = 0.001
     max_iterations = 2000

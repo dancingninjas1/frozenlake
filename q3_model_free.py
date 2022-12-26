@@ -74,4 +74,3 @@ def q_learning(env, max_episodes, eta, gamma, epsilon, seed=None):
     return policy, value
 
 
-

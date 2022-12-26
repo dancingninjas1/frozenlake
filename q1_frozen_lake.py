@@ -191,7 +191,7 @@ class FrozenLake(Environment):
         pi[np.where(self.lake_flat == '&')[0]] = 1.0
 
         # absorbing_state
-        self.absorb_state_idx = n_states - 1
+        self.absorbing_state = n_states - 1
         self.absorb_state = tuple((-1, -1))
 
         Environment.__init__(self, n_states, n_actions, max_steps, pi, seed)
@@ -213,7 +213,7 @@ class FrozenLake(Environment):
             for action_idx, action in enumerate(self.actions):
 
                 # current state is absorb state
-                if state_idx == self.absorb_state_idx:
+                if state_idx == self.absorbing_state:
                     next_state = self.absorb_state
                     next_state_idx = self.state_dict.get(next_state)
                     self.transition_probability[next_state_idx, state_idx, action_idx] = 1
@@ -251,7 +251,7 @@ class FrozenLake(Environment):
 
     def step(self, action):
         state, reward, done = Environment.step(self, action)
-        done = (state == self.absorb_state_idx) or done
+        done = (state == self.absorbing_state) or done
         return state, reward, done
 
     """Get probability of transitioning from state to next state given action
@@ -305,7 +305,7 @@ class FrozenLake(Environment):
         if policy is None:
             lake = np.array(self.lake_flat)
 
-            if self.state < self.absorb_state_idx:
+            if self.state < self.absorbing_state:
                 lake[self.state] = '@'
 
             print(lake.reshape(self.lake.shape))
