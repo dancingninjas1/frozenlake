@@ -1,7 +1,6 @@
 import numpy as np
 import torch
 from collections import deque
-from PIL import Image, ImageDraw
 
 class FrozenLakeImageWrapper:
     def __init__(self, env):

@@ -26,7 +26,7 @@ def main():
     gamma = 0.9
     theta = 0.001
     max_iterations = 2000
-    print("Model based Algorithm")
+    print(" ### Model based Algorithm ### ")
 
     print('')
     print('## Policy iteration')
@@ -38,16 +38,17 @@ def main():
     policy, value = value_iteration(env, gamma, theta, max_iterations)
     env.render(policy, value)
 
+    print(" ### Model free Algorithms ### ")
     epsilon = 0.9
-    max_episodes = 10000
+    max_episodes = 4000
     alpha = 0.85
     gamma = 0.95
-    print("Model free Algorithm")
+    print('## Sarsa')
     policy, value = sarsa(env, max_episodes, alpha, gamma, epsilon)
     env.render(policy, value)
 
+    print('## Q-Learning')
     epsilon = 0.1
-    max_episodes = 10000
     alpha = 0.6
     gamma = 1.0
     policy, value = q_learning(env, max_episodes, alpha, gamma, epsilon)
@@ -67,7 +68,6 @@ def main():
 
     print('## Deep Q-network learning')
 
-    max_episodes = 4000
     gamma = 0.9
     image_env = FrozenLakeImageWrapper(env)
     dqn = deep_q_network_learning(image_env, max_episodes, learning_rate=0.001,
