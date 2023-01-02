@@ -24,7 +24,7 @@ def sarsa(env, max_episodes, eta, gamma, epsilon, seed=None):
     epsilon = np.linspace(epsilon, 0, max_episodes)
 
     q = np.zeros((env.n_states, env.n_actions))
-
+    returns_ = []
     for episode in range(max_episodes):
         s = env.reset()
         done = False
@@ -39,11 +39,11 @@ def sarsa(env, max_episodes, eta, gamma, epsilon, seed=None):
             q[s,a] += eta[episode] * ((reward_pre + gamma * q[state_s, state_a]) - q[s,a])
             a = state_a
             s = state_s
-
+        returns_ += [q.max(axis=1).mean()]
     policy = q.argmax(axis=1)
     value = q.max(axis=1)
 
-    return policy, value
+    return policy, value, returns_
 
 
 
