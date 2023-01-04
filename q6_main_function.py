@@ -4,35 +4,28 @@ from q3_model_free import sarsa, q_learning
 from q4_non_tabular_model import LinearWrapper, linear_sarsa, linear_q_learning
 from q5_deep_reinforcement_learning import FrozenLakeImageWrapper, deep_q_network_learning
 import matplotlib.pyplot as plt
+import matplotlib.lines as lines
 import os
 import numpy as np
-
-
-def prepare_plot(returns, name):
-    # Moving average window of length 20
-    window = 20
-    # Calculate the moving average using np.convolve
-    ma = np.convolve(returns, np.ones(window) / window, mode='valid')
-    # Plot the episode number on the x-axis and the moving average on the y-axis
-    line, = plt.plot(np.arange(1, len(ma) + 1), ma)
-    return name, line
 
 
 def show_all_plots(plots_):
     path = "plots/"
     # Check whether the specified path exists or not
-    isExist = os.path.exists(path)
-    if not isExist:
+    is_exist = os.path.exists(path)
+    if not is_exist:
         # Create a new directory because it does not exist
         os.makedirs(path)
-        print("Direcotry " + path + " created.")
+        print("Directory " + path + " created.")
 
     plots = [eachPlot[1] for eachPlot in plots_]
     names = [eachPlot[0] for eachPlot in plots_]
-
-    plt.legend(plots, names)
+    for i in range(len(plots)):
+        plt.plot(plots[i].get_xdata(), plots[i].get_ydata(), label=names[i])
+    plt.legend()
     plt.xlabel('Episode Number')
     plt.ylabel('Moving Average')
+
     plt.savefig('plots/{}.png'.format("All_plots"))
     plt.show()
 
@@ -41,14 +34,19 @@ def show_individual_plot(returns_, name):
     # Moving average window of length 20
     window = 20
     # Calculate the moving average using np.convolve
-    ma = np.convolve(returns_, np.ones(window) / window, mode='valid')
+    mp = np.convolve(returns_, np.ones(window) / window, mode='valid')
     # Plot the episode number on the x-axis and the moving average on the y-axis
     plt.clf()
     plt.cla()
-    plt.plot(np.arange(1, len(ma) + 1), ma)
+    plt.figure(dpi=1200)
+    line, = plt.plot(np.arange(1, len(mp) + 1), mp, label=name)
+    plt.legend()
+
     plt.xlabel('Episode Number')
     plt.ylabel('Moving Average')
     plt.savefig('plots/{}.png'.format(name))
+    plt.close()
+    return name, line
 
 
 def main():
@@ -94,8 +92,7 @@ def main():
     print('## Sarsa')
     policy, value, returns_ = sarsa(env, max_episodes, alpha, gamma, epsilon)
     env.render(policy, value)
-    show_individual_plot(returns_, "Sarsa")
-    plot_ = prepare_plot(returns_, "Sarsa")
+    plot_ = show_individual_plot(returns_, "Sarsa")
     plots_.append(plot_)
 
     print('## Q-Learning')
@@ -105,8 +102,7 @@ def main():
     gamma = 1.0
     policy, value, returns_ = q_learning(env, max_episodes, alpha, gamma, epsilon)
     env.render(policy, value)
-    show_individual_plot(returns_, "Q-Learning")
-    plot_ = prepare_plot(returns_, "Q-Learning")
+    plot_ = show_individual_plot(returns_, "Q-Learning")
     plots_.append(plot_)
 
     print('## Linear Sarsa')
@@ -116,8 +112,7 @@ def main():
     parameters, returns_ = linear_sarsa(linear_env, max_episodes, alpha, gamma, epsilon, seed=seed)
     policy, value = linear_env.decode_policy(parameters)
     linear_env.render(policy, value)
-    show_individual_plot(returns_, "Linear Sarsa")
-    plot_ = prepare_plot(returns_, "Linear Sarsa")
+    plot_ = show_individual_plot(returns_, "Linear Sarsa")
     plots_.append(plot_)
 
     print('## Linear Q-learning')
@@ -125,8 +120,7 @@ def main():
     parameters, returns_ = linear_q_learning(linear_env, max_episodes, alpha, gamma, epsilon, seed=seed)
     policy, value = linear_env.decode_policy(parameters)
     linear_env.render(policy, value)
-    show_individual_plot(returns_, "Linear Q Learning")
-    plot_ = prepare_plot(returns_, "Linear-Q-Learning")
+    plot_ = show_individual_plot(returns_, "Linear Q Learning")
     plots_.append(plot_)
 
     print('## Deep Q-network learning')
@@ -141,9 +135,9 @@ def main():
     policy, value = image_env.decode_policy(dqn[0])
     returns_ = dqn[1]
     image_env.render(policy, value)
-    show_individual_plot(returns_, "DQN")
-    plot_ = prepare_plot(returns_, "DQN")
+    plot_ = show_individual_plot(returns_, "DQN")
     plots_.append(plot_)
+
     show_all_plots(plots_)
 
 
