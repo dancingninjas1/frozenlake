@@ -28,8 +28,7 @@ def sarsa(env, max_episodes, eta, gamma, epsilon, seed=None):
     epsilon = np.linspace(epsilon, 0, max_episodes)
 
     q = np.zeros((env.n_states, env.n_actions))
-
-    iterations = []
+    returns_ = []
     for episode in range(max_episodes):
         s = env.reset()
         done = False
@@ -41,16 +40,11 @@ def sarsa(env, max_episodes, eta, gamma, epsilon, seed=None):
 
             q[s, a] += eta[episode] * ((r + gamma * q[state_s, state_a]) - q[s, a])
             a, s = state_a, state_s
-        iterations += [q.max(axis=1).mean()]
-    mp = np.convolve(iterations, np.ones(20) / 20, mode='valid')
-    #plt.clf()
-    #plt.cla()
-    #plt.plot(np.arange(1, len(mp) + 1), mp)
-    #plt.savefig('plots/sarsa.png')
+        returns_ += [q.max(axis=1).mean()]
     policy = q.argmax(axis=1)
     value = q.max(axis=1)
 
-    return policy, value
+    return policy, value, returns_
 
 
 def q_learning(env, max_episodes, eta, gamma, epsilon, seed=None):

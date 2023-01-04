@@ -1,7 +1,6 @@
 import numpy as np
 import torch
 from collections import deque
-from PIL import Image, ImageDraw
 
 class FrozenLakeImageWrapper:
     def __init__(self, env):
@@ -136,7 +135,7 @@ def deep_q_network_learning(env, max_episodes, learning_rate, gamma, epsilon,
                         fc_out_features, seed=seed)
 
     epsilon = np.linspace(epsilon, 0, max_episodes)
-
+    returns_ = []
     for i in range(max_episodes):
         state = env.reset()
 
@@ -165,4 +164,5 @@ def deep_q_network_learning(env, max_episodes, learning_rate, gamma, epsilon,
         if (i % target_update_frequency) == 0:
             tdqn.load_state_dict(dqn.state_dict())
 
-    return dqn
+        returns_ += [env.decode_policy(dqn)[1].mean()]
+    return dqn, returns_
