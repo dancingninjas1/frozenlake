@@ -12,10 +12,13 @@ def prepare_plot(returns, name):
     # Moving average window of length 20
     window = 20
     # Calculate the moving average using np.convolve
-    ma = np.convolve(returns, np.ones(window) / window, mode='valid')
+    mp = np.convolve(returns, np.ones(20)/20, mode='valid')
     # Plot the episode number on the x-axis and the moving average on the y-axis
-    line, = plt.plot(np.arange(1, len(ma) + 1), ma)
-    return name, line
+    plt.clf()
+    plt.cla()
+    plt.plot(np.arange(1, len(mp) + 1), mp)
+    plt.savefig('plots/{}.png'.format(name))
+    return name
 
 
 def show_all_plots(plots_):
@@ -25,7 +28,7 @@ def show_all_plots(plots_):
     if not isExist:
         # Create a new directory because it does not exist
         os.makedirs(path)
-        print("Direcotry " + path + " created.")
+        print("Directory " + path + " created.")
 
     plots = [eachPlot[1] for eachPlot in plots_]
     names = [eachPlot[0] for eachPlot in plots_]
@@ -74,7 +77,7 @@ def main():
 
     print(" ### Model free Algorithms ### ")
     epsilon = 0.9
-    max_episodes = 50000
+    max_episodes = 4000
     alpha = 0.85
     gamma = 0.95
     print('## Sarsa')
@@ -85,23 +88,31 @@ def main():
 
     print('## Q-Learning')
     epsilon = 0.1
-    max_episodes = 50000
+    max_episodes = 4000
     alpha = 0.6
     gamma = 1.0
-    policy, value = q_learning(env, max_episodes, alpha, gamma, epsilon)
+    policy, value, returns_ = q_learning(env, max_episodes, alpha, gamma, epsilon)
     env.render(policy, value)
+    plot_ = prepare_plot(returns_, "Q-Learning")
+    plots_.append(plot_)
 
     print('## Linear Sarsa')
     seed = 0
+    max_episodes = 4000
     linear_env = LinearWrapper(env)
-    parameters = linear_sarsa(linear_env, max_episodes, alpha, gamma, epsilon, seed=seed)
+    parameters, returns_ = linear_sarsa(linear_env, max_episodes, alpha, gamma, epsilon, seed=seed)
     policy, value = linear_env.decode_policy(parameters)
     linear_env.render(policy, value)
+    plot_ = prepare_plot(returns_, "Linear Sarsa")
+    plots_.append(plot_)
 
     print('## Linear Q-learning')
-    parameters = linear_q_learning(linear_env, max_episodes, alpha, gamma, epsilon, seed=seed)
+    max_episodes = 4000
+    parameters, returns_ = linear_q_learning(linear_env, max_episodes, alpha, gamma, epsilon, seed=seed)
     policy, value = linear_env.decode_policy(parameters)
     linear_env.render(policy, value)
+    plot_ = prepare_plot(returns_, "Linear-Q-Learning")
+    plots_.append(plot_)
 
     print('## Deep Q-network learning')
 

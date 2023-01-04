@@ -1,5 +1,4 @@
 import numpy as np
-from matplotlib import pyplot as plt
 import os
 
 os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
@@ -22,7 +21,6 @@ def choose_action(env, episode, epsilon, q, random_state, s):
 
 
 def sarsa(env, max_episodes, eta, gamma, epsilon, seed=None):
-    print("Sarsa Learning")
     random_state = np.random.RandomState(seed)
     eta = np.linspace(eta, 0, max_episodes)
     epsilon = np.linspace(epsilon, 0, max_episodes)
@@ -31,10 +29,10 @@ def sarsa(env, max_episodes, eta, gamma, epsilon, seed=None):
     returns_ = []
     for episode in range(max_episodes):
         s = env.reset()
-        done = False
+        finish = False
         a = choose_action(env, episode, epsilon, q, random_state, s)
-        while not done:
-            state_s, r, done = env.step(a)
+        while not finish:
+            state_s, r, finish = env.step(a)
 
             state_a = get_action(random_state, epsilon, episode, env, q, s)
 
@@ -48,27 +46,24 @@ def sarsa(env, max_episodes, eta, gamma, epsilon, seed=None):
 
 
 def q_learning(env, max_episodes, eta, gamma, epsilon, seed=None):
-    print("Q Learning")
     random_state = np.random.RandomState(seed)
     eta = np.linspace(eta, 0, max_episodes)
     epsilon = np.linspace(epsilon, 0, max_episodes)
 
     q = np.zeros((env.n_states, env.n_actions))
-
+    returns_ = []
     for episode in range(max_episodes):
         s = env.reset()
         j = 0
-        done = False
-        while not done:
+        finish = False
+        while not finish:
             a = choose_action(env, episode, epsilon, q, random_state, s)
             j += 1
-
-            state_s, reward_pre, done = env.step(a)
-
-            q[s, a] += eta[episode] * (reward_pre + gamma * max(q[state_s]) - q[s, a])
+            state_s, r, finish = env.step(a)
+            q[s, a] += eta[episode] * (r + gamma * max(q[state_s]) - q[s, a])
             s = state_s
-
+        returns_ += [q.max(axis=1).mean()]
     policy = q.argmax(axis=1)
     value = q.max(axis=1)
 
-    return policy, value
+    return policy, value, returns_
