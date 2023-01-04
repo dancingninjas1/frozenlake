@@ -4,6 +4,7 @@ from q3_model_free import sarsa, q_learning
 from q4_non_tabular_model import LinearWrapper, linear_sarsa, linear_q_learning
 from q5_deep_reinforcement_learning import FrozenLakeImageWrapper, deep_q_network_learning
 
+
 def main():
     seed = 0
     small_lake = [['&', '.', '.', '.'],
@@ -20,7 +21,7 @@ def main():
                 ['.', '#', '.', '.', '#', '.', '#', '.'],
                 ['.', '.', '.', '#', '.', '.', '.', '$']]
 
-    lake = big_lake
+    lake = small_lake
     size = len(lake) * len(lake[0])
     env = FrozenLake(lake, slip=0.1, max_steps=size, seed=seed)
     gamma = 0.9
@@ -39,7 +40,7 @@ def main():
     env.render(policy, value)
 
     epsilon = 0.9
-    max_episodes = 10000
+    max_episodes = 50000
     alpha = 0.85
     gamma = 0.95
     print("Model free Algorithm")
@@ -47,7 +48,7 @@ def main():
     env.render(policy, value)
 
     epsilon = 0.1
-    max_episodes = 10000
+    max_episodes = 50000
     alpha = 0.6
     gamma = 1.0
     policy, value = q_learning(env, max_episodes, alpha, gamma, epsilon)
@@ -77,5 +78,6 @@ def main():
                                   fc_out_features=8, seed=4)
     policy, value = image_env.decode_policy(dqn)
     image_env.render(policy, value)
+
 
 main()

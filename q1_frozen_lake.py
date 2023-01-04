@@ -288,8 +288,8 @@ class FrozenLake(Environment):
 
     def r(self, next_state, state, action):
         char = 'xs'
-        if (state < self.n_states - 1): char = self.lake_flat[state]  # if not in the absorbing state
-        if (char == '$'): return 1  # but on goal then return reward one
+        if state < self.n_states - 1: char = self.lake_flat[state]  # if not in the absorbing state
+        if char == '$': return 1  # but on goal then return reward one
         return 0  # for any other action no reward
 
     """Render the decision matrix
