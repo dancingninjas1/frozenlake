@@ -12,13 +12,10 @@ def prepare_plot(returns, name):
     # Moving average window of length 20
     window = 20
     # Calculate the moving average using np.convolve
-    mp = np.convolve(returns, np.ones(20)/20, mode='valid')
+    ma = np.convolve(returns, np.ones(window) / window, mode='valid')
     # Plot the episode number on the x-axis and the moving average on the y-axis
-    plt.clf()
-    plt.cla()
-    plt.plot(np.arange(1, len(mp) + 1), mp)
-    plt.savefig('plots/{}.png'.format(name))
-    return name
+    line, = plt.plot(np.arange(1, len(ma) + 1), ma)
+    return name, line
 
 
 def show_all_plots(plots_):
@@ -28,7 +25,7 @@ def show_all_plots(plots_):
     if not isExist:
         # Create a new directory because it does not exist
         os.makedirs(path)
-        print("Directory " + path + " created.")
+        print("Direcotry " + path + " created.")
 
     plots = [eachPlot[1] for eachPlot in plots_]
     names = [eachPlot[0] for eachPlot in plots_]
@@ -38,6 +35,20 @@ def show_all_plots(plots_):
     plt.ylabel('Moving Average')
     plt.savefig('plots/{}.png'.format("All_plots"))
     plt.show()
+
+
+def show_individual_plot(returns_, name):
+    # Moving average window of length 20
+    window = 20
+    # Calculate the moving average using np.convolve
+    ma = np.convolve(returns_, np.ones(window) / window, mode='valid')
+    # Plot the episode number on the x-axis and the moving average on the y-axis
+    plt.clf()
+    plt.cla()
+    plt.plot(np.arange(1, len(ma) + 1), ma)
+    plt.xlabel('Episode Number')
+    plt.ylabel('Moving Average')
+    plt.savefig('plots/{}.png'.format(name))
 
 
 def main():
@@ -83,6 +94,7 @@ def main():
     print('## Sarsa')
     policy, value, returns_ = sarsa(env, max_episodes, alpha, gamma, epsilon)
     env.render(policy, value)
+    show_individual_plot(returns_, "Sarsa")
     plot_ = prepare_plot(returns_, "Sarsa")
     plots_.append(plot_)
 
@@ -93,6 +105,7 @@ def main():
     gamma = 1.0
     policy, value, returns_ = q_learning(env, max_episodes, alpha, gamma, epsilon)
     env.render(policy, value)
+    show_individual_plot(returns_, "Q-Learning")
     plot_ = prepare_plot(returns_, "Q-Learning")
     plots_.append(plot_)
 
@@ -103,6 +116,7 @@ def main():
     parameters, returns_ = linear_sarsa(linear_env, max_episodes, alpha, gamma, epsilon, seed=seed)
     policy, value = linear_env.decode_policy(parameters)
     linear_env.render(policy, value)
+    show_individual_plot(returns_, "Linear Sarsa")
     plot_ = prepare_plot(returns_, "Linear Sarsa")
     plots_.append(plot_)
 
@@ -111,6 +125,7 @@ def main():
     parameters, returns_ = linear_q_learning(linear_env, max_episodes, alpha, gamma, epsilon, seed=seed)
     policy, value = linear_env.decode_policy(parameters)
     linear_env.render(policy, value)
+    show_individual_plot(returns_, "Linear Q Learning")
     plot_ = prepare_plot(returns_, "Linear-Q-Learning")
     plots_.append(plot_)
 
@@ -126,6 +141,7 @@ def main():
     policy, value = image_env.decode_policy(dqn[0])
     returns_ = dqn[1]
     image_env.render(policy, value)
+    show_individual_plot(returns_, "DQN")
     plot_ = prepare_plot(returns_, "DQN")
     plots_.append(plot_)
     show_all_plots(plots_)
